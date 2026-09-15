@@ -1,0 +1,11 @@
+title: The Outsiders [Vol. Stargazer]
+description: The Outsiders story reader
+lang: zh-Hant
+markdown: kramdown
+
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+exclude:
+  - README.md

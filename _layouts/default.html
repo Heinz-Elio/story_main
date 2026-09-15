@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="{{ site.lang | default: 'zh-Hant' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title | default: site.title }}</title>
+    <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+  </head>
+  <body>
+    <a class="skip-link" href="#article">跳到正文</a>
+
+    <button
+      id="sidebar-toggle"
+      class="sidebar-toggle"
+      type="button"
+      aria-controls="reading-sidebar"
+      aria-expanded="true"
+    >
+      收合側欄
+    </button>
+
+    <div class="site-shell">
+      <main id="article" class="article" tabindex="-1">
+        {{ content }}
+      </main>
+
+      <aside id="reading-sidebar" class="reading-sidebar" aria-label="閱讀工具">
+        <details class="sidebar-section" open>
+          <summary>目錄</summary>
+          <nav id="toc" aria-label="文章目錄"></nav>
+        </details>
+
+        <details class="sidebar-section" open>
+          <summary>縮寫</summary>
+          <div id="glossary">
+            <p class="sidebar-empty">文章尚未標記縮寫。</p>
+          </div>
+        </details>
+      </aside>
+    </div>
+
+    <script src="{{ '/assets/js/site.js' | relative_url }}"></script>
+  </body>
+</html>
