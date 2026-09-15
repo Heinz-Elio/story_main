@@ -9,33 +9,55 @@
   <body>
     <a class="skip-link" href="#article">跳到正文</a>
 
-    <button
-      id="sidebar-toggle"
-      class="sidebar-toggle"
-      type="button"
-      aria-controls="reading-sidebar"
-      aria-expanded="true"
-    >
-      收合側欄
-    </button>
-
     <div class="site-shell">
+      <aside
+        id="toc-sidebar"
+        class="reading-sidebar reading-sidebar--left"
+        aria-label="文章目錄"
+      >
+        <header class="sidebar-header">
+          <strong>目錄</strong>
+          <button
+            id="toc-toggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-controls="toc-sidebar-content"
+            aria-expanded="true"
+          >
+            收合目錄
+          </button>
+        </header>
+        <div id="toc-sidebar-content" class="sidebar-content">
+          <nav id="toc" aria-label="文章目錄"></nav>
+        </div>
+      </aside>
+
       <main id="article" class="article" tabindex="-1">
         {{ content }}
       </main>
 
-      <aside id="reading-sidebar" class="reading-sidebar" aria-label="閱讀工具">
-        <details class="sidebar-section" open>
-          <summary>目錄</summary>
-          <nav id="toc" aria-label="文章目錄"></nav>
-        </details>
-
-        <details class="sidebar-section" open>
-          <summary>縮寫</summary>
+      <aside
+        id="glossary-sidebar"
+        class="reading-sidebar reading-sidebar--right"
+        aria-label="縮寫提示"
+      >
+        <header class="sidebar-header">
+          <strong>縮寫</strong>
+          <button
+            id="glossary-toggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-controls="glossary-sidebar-content"
+            aria-expanded="true"
+          >
+            收合縮寫
+          </button>
+        </header>
+        <div id="glossary-sidebar-content" class="sidebar-content">
           <div id="glossary">
             <p class="sidebar-empty">文章尚未標記縮寫。</p>
           </div>
-        </details>
+        </div>
       </aside>
     </div>
 

@@ -4,28 +4,55 @@
   const article = document.getElementById("article");
   const toc = document.getElementById("toc");
   const glossary = document.getElementById("glossary");
-  const sidebar = document.getElementById("reading-sidebar");
-  const sidebarToggle = document.getElementById("sidebar-toggle");
-  const storageKey = "outsiders.sidebar-collapsed";
+  const sidebars = [
+    {
+      name: "目錄",
+      sidebar: document.getElementById("toc-sidebar"),
+      content: document.getElementById("toc-sidebar-content"),
+      toggle: document.getElementById("toc-toggle"),
+      storageKey: "outsiders.toc-collapsed",
+    },
+    {
+      name: "縮寫",
+      sidebar: document.getElementById("glossary-sidebar"),
+      content: document.getElementById("glossary-sidebar-content"),
+      toggle: document.getElementById("glossary-toggle"),
+      storageKey: "outsiders.glossary-collapsed",
+    },
+  ];
 
-  function setSidebarCollapsed(collapsed, persist) {
-    document.body.classList.toggle("sidebar-collapsed", collapsed);
-    sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
-    sidebarToggle.textContent = collapsed ? "顯示側欄" : "收合側欄";
-    sidebar.setAttribute("aria-hidden", String(collapsed));
+  function responsiveStorageKey(config) {
+    const viewport = window.matchMedia("(max-width: 800px)").matches
+      ? "mobile"
+      : "desktop";
+    return `${config.storageKey}.${viewport}`;
+  }
+
+  function setSidebarCollapsed(config, collapsed, persist) {
+    config.sidebar.classList.toggle("is-collapsed", collapsed);
+    config.toggle.setAttribute("aria-expanded", String(!collapsed));
+    config.toggle.textContent = collapsed
+      ? `展開${config.name}`
+      : `收合${config.name}`;
+    config.content.hidden = collapsed;
 
     if (persist) {
       try {
-        window.localStorage.setItem(storageKey, String(collapsed));
+        window.localStorage.setItem(
+          responsiveStorageKey(config),
+          String(collapsed),
+        );
       } catch (error) {
         // localStorage may be unavailable in private browsing contexts.
       }
     }
   }
 
-  function initialSidebarState() {
+  function initialSidebarState(config) {
     try {
-      const stored = window.localStorage.getItem(storageKey);
+      const stored = window.localStorage.getItem(
+        responsiveStorageKey(config),
+      );
       if (stored !== null) {
         return stored === "true";
       }
@@ -70,7 +97,7 @@
     const usedIds = new Set(
       Array.from(document.querySelectorAll("[id]")).map((element) => element.id),
     );
-    const list = document.createElement("ol");
+    const list = document.createElement("ul");
     list.className = "toc-list";
 
     headings.forEach((heading, index) => {
@@ -122,12 +149,15 @@
     glossary.replaceChildren(list);
   }
 
-  sidebarToggle.addEventListener("click", function () {
-    const collapsed = document.body.classList.contains("sidebar-collapsed");
-    setSidebarCollapsed(!collapsed, true);
+  sidebars.forEach((config) => {
+    config.toggle.addEventListener("click", function () {
+      const collapsed = config.sidebar.classList.contains("is-collapsed");
+      setSidebarCollapsed(config, !collapsed, true);
+    });
+
+    setSidebarCollapsed(config, initialSidebarState(config), false);
   });
 
-  setSidebarCollapsed(initialSidebarState(), false);
   buildTableOfContents();
   buildGlossary();
 })();

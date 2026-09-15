@@ -41,18 +41,22 @@ a {
 
 .site-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
-  gap: 2rem;
-  max-width: 76rem;
+  grid-template-columns:
+    minmax(12rem, 16rem)
+    minmax(0, 44rem)
+    minmax(13rem, 17rem);
+  justify-content: center;
+  gap: 1.5rem;
+  max-width: 96rem;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 3.5rem 1.5rem 4rem;
-  transition: grid-template-columns 180ms ease, gap 180ms ease;
+  padding: 1rem 1.5rem 4rem;
 }
 
 .article {
   min-width: 0;
-  padding: 0 1rem;
+  width: 100%;
+  padding: 0 0.5rem;
 }
 
 .article:focus {
@@ -162,19 +166,22 @@ a {
   align-self: start;
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  padding: 3.5rem 1rem 1rem;
+  padding: 0.8rem 1rem 1rem;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid #d6d3d1;
   border-radius: 0.65rem;
   box-shadow: 0 0.5rem 1.5rem rgba(28, 25, 23, 0.08);
-  transition: width 180ms ease, opacity 180ms ease, visibility 180ms ease;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .sidebar-toggle {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 30;
+  flex: none;
   padding: 0.4rem 0.7rem;
   color: #292524;
   background: #fff;
@@ -188,25 +195,19 @@ a {
   background: #f5f5f4;
 }
 
-.sidebar-section {
-  margin-bottom: 1rem;
-}
-
-.sidebar-section summary {
-  padding: 0.3rem 0;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.sidebar-section nav,
-.sidebar-section > div {
-  margin-top: 0.5rem;
+.sidebar-content {
+  margin-top: 0.75rem;
 }
 
 .toc-list {
   margin: 0;
-  padding-left: 1.2rem;
+  padding: 0;
+  list-style: none;
   font-size: 0.92rem;
+}
+
+.toc-list li {
+  margin: 0.35rem 0;
 }
 
 .toc-list li[data-level="3"] {
@@ -247,24 +248,18 @@ a {
   font-size: 0.9rem;
 }
 
-body.sidebar-collapsed .site-shell {
-  grid-template-columns: minmax(0, 1fr) 0;
-  gap: 0;
+.reading-sidebar.is-collapsed .sidebar-header {
+  justify-content: flex-end;
 }
 
-body.sidebar-collapsed .reading-sidebar {
-  width: 0;
-  padding: 0;
-  overflow: hidden;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
+.reading-sidebar.is-collapsed .sidebar-header > strong {
+  display: none;
 }
 
 @media (max-width: 800px) {
   .site-shell {
     display: block;
-    padding: 3.5rem 1rem 3rem;
+    padding: 1rem 1rem 3rem;
   }
 
   .article {
@@ -274,24 +269,41 @@ body.sidebar-collapsed .reading-sidebar {
   .reading-sidebar {
     position: fixed;
     top: 0;
-    right: 0;
     bottom: 0;
     z-index: 20;
     width: min(88vw, 22rem);
     height: 100vh;
     max-height: none;
     border-radius: 0;
-    transform: translateX(0);
-    transition: transform 180ms ease, visibility 180ms ease;
+    transition: transform 180ms ease;
   }
 
-  body.sidebar-collapsed .site-shell {
-    display: block;
+  .reading-sidebar--left {
+    left: 0;
   }
 
-  body.sidebar-collapsed .reading-sidebar {
-    width: min(88vw, 22rem);
-    padding: 3.5rem 1rem 1rem;
-    transform: translateX(100%);
+  .reading-sidebar--right {
+    right: 0;
+  }
+
+  .reading-sidebar.is-collapsed {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 0.5rem;
+    border-radius: 0 0 0.65rem 0;
+    overflow: visible;
+  }
+
+  .reading-sidebar--left.is-collapsed {
+    border-radius: 0 0 0.65rem 0;
+  }
+
+  .reading-sidebar--right.is-collapsed {
+    border-radius: 0 0 0 0.65rem;
+  }
+
+  .reading-sidebar.is-collapsed .sidebar-toggle {
+    padding: 0.35rem 0.55rem;
   }
 }
