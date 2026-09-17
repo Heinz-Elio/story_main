@@ -31,9 +31,10 @@
   function setSidebarCollapsed(config, collapsed, persist) {
     config.sidebar.classList.toggle("is-collapsed", collapsed);
     config.toggle.setAttribute("aria-expanded", String(!collapsed));
-    config.toggle.textContent = collapsed
-      ? `展開${config.name}`
-      : `收合${config.name}`;
+    config.toggle.setAttribute(
+      "aria-label",
+      collapsed ? `展開${config.name}` : `收合${config.name}`,
+    );
     config.content.hidden = collapsed;
 
     if (persist) {
