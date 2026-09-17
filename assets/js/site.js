@@ -91,7 +91,7 @@
 
   function buildTableOfContents() {
     if (!article || !toc) {
-      return;
+      return [];
     }
 
     const headings = Array.from(article.querySelectorAll("h2, h3, h4"));
@@ -112,6 +112,172 @@
     });
 
     toc.replaceChildren(list);
+    return headings;
+  }
+
+  function paginateByHeading() {
+    if (!article) {
+      return [];
+    }
+
+    const title = article.querySelector("h1");
+    const nodes = Array.from(article.children).filter((node) => node !== title);
+    const pages = [];
+    let currentNodes = [];
+    let pendingH2 = null;
+
+    function closePage() {
+      if (currentNodes.length === 0) {
+        return;
+      }
+
+      const page = document.createElement("section");
+      page.className = "story-page";
+      page.hidden = true;
+      currentNodes.forEach((node) => page.appendChild(node));
+      pages.push(page);
+      currentNodes = [];
+    }
+
+    nodes.forEach((node) => {
+      if (node.tagName === "H2") {
+        closePage();
+        pendingH2 = node;
+        return;
+      }
+
+      if (node.tagName === "H3") {
+        closePage();
+        if (pendingH2) {
+          currentNodes.push(pendingH2);
+          pendingH2 = null;
+        }
+        currentNodes.push(node);
+        return;
+      }
+
+      if (currentNodes.length === 0 && pendingH2) {
+        currentNodes.push(pendingH2);
+        pendingH2 = null;
+      }
+
+      currentNodes.push(node);
+    });
+
+    if (pendingH2) {
+      currentNodes.unshift(pendingH2);
+    }
+
+    closePage();
+
+    pages.forEach((page, index) => {
+      page.dataset.page = String(index + 1);
+      const heading = page.querySelector("h3, h2, h4");
+      if (heading && heading.id) {
+        page.id = `page-${heading.id}`;
+      }
+    });
+
+    const pager = document.createElement("nav");
+    pager.className = "page-nav";
+    pager.setAttribute("aria-label", "章節分頁");
+    pager.innerHTML =
+      '<button type="button" data-page-prev>上一頁</button>' +
+      '<p class="page-status" aria-live="polite"></p>' +
+      '<button type="button" data-page-next>下一頁</button>';
+
+    article.replaceChildren(...[title, ...pages, pager].filter(Boolean));
+    return pages;
+  }
+
+  function setupPagination(pages) {
+    if (!article || pages.length === 0) {
+      return;
+    }
+
+    const prevButton = article.querySelector("[data-page-prev]");
+    const nextButton = article.querySelector("[data-page-next]");
+    const status = article.querySelector(".page-status");
+    let currentIndex = 0;
+
+    function pageIndexForId(id) {
+      if (!id) {
+        return 0;
+      }
+
+      const heading = document.getElementById(id);
+      if (!heading) {
+        return 0;
+      }
+
+      return Math.max(
+        0,
+        pages.findIndex((page) => page.contains(heading)),
+      );
+    }
+
+    function showPage(index, headingId) {
+      currentIndex = Math.min(Math.max(index, 0), pages.length - 1);
+      const page = pages[currentIndex];
+
+      pages.forEach((candidate, pageIndex) => {
+        candidate.hidden = pageIndex !== currentIndex;
+      });
+
+      prevButton.disabled = currentIndex === 0;
+      nextButton.disabled = currentIndex === pages.length - 1;
+      status.textContent = `${currentIndex + 1} / ${pages.length}`;
+
+      if (toc) {
+        toc.querySelectorAll("a").forEach((link) => {
+          const targetId = decodeURIComponent(link.hash.replace(/^#/, ""));
+          const target = targetId ? document.getElementById(targetId) : null;
+          link.classList.toggle("is-current", Boolean(target && page.contains(target)));
+        });
+      }
+
+      const activeHeading =
+        (headingId && page.querySelector(`#${CSS.escape(headingId)}`)) ||
+        page.querySelector("h3, h2, h4");
+      if (activeHeading && activeHeading.id) {
+        history.replaceState(null, "", `#${activeHeading.id}`);
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    prevButton.addEventListener("click", function () {
+      showPage(currentIndex - 1);
+    });
+
+    nextButton.addEventListener("click", function () {
+      showPage(currentIndex + 1);
+    });
+
+    if (toc) {
+      toc.addEventListener("click", function (event) {
+        const link = event.target.closest("a");
+        if (!link || !toc.contains(link)) {
+          return;
+        }
+
+        const id = decodeURIComponent(link.hash.replace(/^#/, ""));
+        if (!id) {
+          return;
+        }
+
+        event.preventDefault();
+        showPage(pageIndexForId(id), id);
+      });
+    }
+
+    window.addEventListener("hashchange", function () {
+      const id = decodeURIComponent(location.hash.replace(/^#/, ""));
+      showPage(pageIndexForId(id), id);
+    });
+
+    const initialId = decodeURIComponent(location.hash.replace(/^#/, ""));
+    showPage(pageIndexForId(initialId), initialId);
   }
 
   function buildGlossary() {
@@ -161,4 +327,5 @@
 
   buildTableOfContents();
   buildGlossary();
+  setupPagination(paginateByHeading());
 })();
