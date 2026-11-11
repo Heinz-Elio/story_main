@@ -69,9 +69,10 @@ a {
   position: relative;
   z-index: 5;
   flex: 0 0 auto;
-  padding: max(0.4rem, env(safe-area-inset-top))
-    max(0.75rem, env(safe-area-inset-right)) 0.4rem
-    max(0.75rem, env(safe-area-inset-left));
+  padding-top: max(0.4rem, env(safe-area-inset-top));
+  padding-bottom: 0.4rem;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
   background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--line);
 }
@@ -469,7 +470,10 @@ a {
     overflow-y: auto;
     overflow-anchor: none;
     overscroll-behavior: contain;
-    padding: 1.15rem 1.15rem max(2.75rem, env(safe-area-inset-bottom));
+    padding-top: 1.15rem;
+    padding-bottom: max(2.75rem, env(safe-area-inset-bottom));
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
     background: var(--paper);
     touch-action: pan-y;
     scroll-padding-top: 0.75rem;
@@ -488,7 +492,6 @@ a {
     position: relative;
     top: auto;
     max-height: none;
-    padding: 0;
     background: var(--paper);
     border: 0;
     border-radius: 0;
