@@ -5,6 +5,14 @@
   line-height: 1.9;
   color: #292524;
   background: #f8f7f4;
+  --toc-width: 14.5rem;
+  --glossary-width: 16rem;
+  /* 42em column with 1em of padding each side ≈ 40 fullwidth characters. */
+  --article-measure: 42em;
+  --paper: #f8f7f4;
+  --ink: #292524;
+  --line: #d6d3d1;
+  --focus: #93c5fd;
 }
 
 * {
@@ -12,15 +20,28 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
   margin: 0;
+  background: var(--paper);
 }
 
 a {
   color: #1d4ed8;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .skip-link {
@@ -40,28 +61,110 @@ a {
 }
 
 .site-shell {
-  display: grid;
-  grid-template-columns:
-    minmax(12rem, 16rem)
-    minmax(0, 44rem)
-    minmax(13rem, 17rem);
-  justify-content: center;
-  gap: 1.5rem;
-  max-width: 96rem;
   min-height: 100vh;
+  background: var(--paper);
+}
+
+.reader-toolbar {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  padding: max(0.4rem, env(safe-area-inset-top))
+    max(0.75rem, env(safe-area-inset-right)) 0.4rem
+    max(0.75rem, env(safe-area-inset-left));
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--line);
+}
+
+.reader-toolbar-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  width: min(100%, 40em);
   margin: 0 auto;
-  padding: 1rem 1.5rem 4rem;
+}
+
+.pane-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.55rem;
+  color: #44403c;
+  font: inherit;
+  font-size: 0.95rem;
+  background: #f5f5f4;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.pane-switch:hover {
+  background: #fff;
+}
+
+.pane-switch:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.pane-switch[aria-pressed="true"] {
+  color: #fff;
+  font-weight: 700;
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+}
+
+.pane-switch-icon {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.reader-toolbar-hint {
+  width: min(100%, 40em);
+  margin: 0.28rem auto 0.1rem;
+  color: #78716c;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.reader-toolbar-hint kbd {
+  padding: 0 0.28em;
+  font-family: inherit;
+  font-size: 0.92em;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 0.25rem;
+}
+
+.reader-viewport {
+  min-width: 0;
+}
+
+.reader-track {
+  --reader-x: -33.333333%;
 }
 
 .article {
   min-width: 0;
   width: 100%;
-  padding: 0 0.5rem;
 }
 
 .article:focus {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--focus);
   outline-offset: 0.5rem;
+}
+
+.reading-sidebar:focus {
+  outline: none;
+}
+
+.reading-sidebar:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 0.25rem;
 }
 
 .article h1,
@@ -80,7 +183,7 @@ a {
 .article h2 {
   margin-top: 3rem;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid #d6d3d1;
+  border-bottom: 1px solid var(--line);
 }
 
 .article h3 {
@@ -108,6 +211,7 @@ a {
   padding: 1rem;
   background: #e7e5e4;
   border-radius: 0.4rem;
+  touch-action: pan-x pan-y;
 }
 
 .article code {
@@ -177,13 +281,19 @@ a {
   overflow: auto;
   padding: 0.8rem 1rem 1rem;
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid #d6d3d1;
+  border: 1px solid var(--line);
   border-radius: 0.65rem;
   box-shadow: 0 0.5rem 1.5rem rgba(28, 25, 23, 0.08);
 }
 
 .sidebar-header {
   display: block;
+}
+
+.sidebar-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .sidebar-toggle {
@@ -207,7 +317,7 @@ a {
 }
 
 .sidebar-toggle:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--focus);
   outline-offset: 0.2rem;
 }
 
@@ -265,12 +375,12 @@ a {
   gap: 0.75rem;
   margin-top: 2.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #d6d3d1;
+  border-top: 1px solid var(--line);
 }
 
 .page-nav button {
   padding: 0.4rem 0.8rem;
-  color: #292524;
+  color: var(--ink);
   background: #fff;
   border: 1px solid #a8a29e;
   border-radius: 0.35rem;
@@ -314,54 +424,178 @@ a {
   font-size: 0.9rem;
 }
 
-@media (max-width: 800px) {
-  .site-shell {
-    display: block;
-    padding: 1rem 1rem 3rem;
+/* Below 1200px the TOC, chapter, and glossary are adjacent pages.
+   Touch swipes and the toolbar move the track; wide screens use columns. */
+@media (max-width: 1199px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
   }
 
-  .article {
-    padding: 0;
+  .site-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .reader-viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  .reader-track {
+    display: flex;
+    height: 100%;
+    width: 300%;
+    background: var(--paper);
+    transform: translate3d(var(--reader-x), 0, 0);
+    transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .reader-track.is-dragging {
+    transition: none;
+  }
+
+  .reader-pane {
+    flex: 0 0 calc(100% / 3);
+    width: calc(100% / 3);
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-anchor: none;
+    overscroll-behavior: contain;
+    padding: 1.15rem 1.15rem max(2.75rem, env(safe-area-inset-bottom));
+    background: var(--paper);
+    touch-action: pan-y;
+    scroll-padding-top: 0.75rem;
+  }
+
+  .reader-pane + .reader-pane {
+    box-shadow: -1px 0 0 #e7e5e4;
+  }
+
+  #article-body {
+    width: min(100%, 40em);
+    margin-inline: auto;
   }
 
   .reading-sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    z-index: 20;
-    width: min(88vw, 22rem);
-    height: 100vh;
+    position: relative;
+    top: auto;
     max-height: none;
+    padding: 0;
+    background: var(--paper);
+    border: 0;
     border-radius: 0;
-    transition: transform 180ms ease;
+    box-shadow: none;
   }
 
-  .reading-sidebar--left {
-    left: 0;
+  .sidebar-header,
+  .sidebar-content {
+    width: min(100%, 36rem);
+    margin-inline: auto;
   }
 
-  .reading-sidebar--right {
-    right: 0;
+  .sidebar-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 1199px) and (prefers-reduced-motion: reduce) {
+  .reader-track {
+    transition: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .reader-toolbar {
+    display: none;
+  }
+
+  .sidebar-title {
+    display: none;
+  }
+
+  .site-shell {
+    padding: 1.25rem 1.25rem 4rem;
+  }
+
+  .site-shell.toc-collapsed {
+    --toc-width: auto;
+    --article-measure: 50em;
+  }
+
+  .site-shell.glossary-collapsed {
+    --glossary-width: auto;
+    --article-measure: 50em;
+  }
+
+  .site-shell.toc-collapsed.glossary-collapsed {
+    --article-measure: 58em;
+  }
+
+  .reader-viewport {
+    overflow: visible;
+  }
+
+  .reader-track {
+    display: grid;
+    grid-template-columns:
+      var(--toc-width)
+      minmax(0, var(--article-measure))
+      var(--glossary-width);
+    justify-content: center;
+    align-items: start;
+    column-gap: 1.5rem;
+    width: auto;
+    height: auto;
+    transform: none;
+  }
+
+  .reader-pane {
+    width: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .article {
+    padding: 0 1em;
   }
 
   .reading-sidebar.is-collapsed {
-    width: auto;
-    height: auto;
+    width: max-content;
     min-width: 0;
-    padding: 0.5rem;
-    border-radius: 0 0 0.65rem 0;
+    max-height: none;
+    padding: 0.4rem 0.65rem;
     overflow: visible;
   }
 
   .reading-sidebar--left.is-collapsed {
-    border-radius: 0 0 0.65rem 0;
+    justify-self: start;
   }
 
   .reading-sidebar--right.is-collapsed {
-    border-radius: 0 0 0 0.65rem;
+    justify-self: end;
   }
 
   .reading-sidebar.is-collapsed .sidebar-toggle {
-    padding: 0.35rem 0.15rem 0.35rem 0;
+    width: auto;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+
+  .reading-sidebar.is-collapsed .sidebar-content {
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

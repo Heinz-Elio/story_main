@@ -8,60 +8,126 @@
   </head>
   <body>
     <a class="skip-link" href="#article">跳到正文</a>
+    <p id="reader-shortcuts" class="visually-hidden">
+      目錄在正文左側，縮寫在正文右側。窄於 1200 像素時，按 [ 往左一頁，按 ] 往右一頁。1200 像素以上三欄並排時，[ 移到目錄，] 移到縮寫。左右方向鍵預留給章節翻頁，不拿來切換這三頁。Alt 加方向鍵留給瀏覽器的上一頁與下一頁。
+    </p>
 
     <div class="site-shell">
-      <aside
-        id="toc-sidebar"
-        class="reading-sidebar reading-sidebar--left"
-        aria-label="文章目錄"
+      <div
+        class="reader-toolbar"
+        role="toolbar"
+        aria-label="側欄導覽"
+        aria-describedby="reader-shortcuts"
       >
-        <header class="sidebar-header">
+        <div class="reader-toolbar-row">
           <button
-            id="toc-toggle"
-            class="sidebar-toggle"
             type="button"
-            aria-controls="toc-sidebar-content"
-            aria-expanded="true"
-            aria-label="收合目錄"
+            class="pane-switch"
+            data-goto-pane="toc"
+            aria-controls="toc-sidebar"
+            aria-pressed="false"
           >
-            <span class="sidebar-toggle-label">目錄</span>
-            <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+            <span class="pane-switch-icon" aria-hidden="true">‹</span>
+            目錄
           </button>
-        </header>
-        <div id="toc-sidebar-content" class="sidebar-content">
-          <nav id="toc" aria-label="文章目錄"></nav>
-        </div>
-      </aside>
-
-      <main id="article" class="article" tabindex="-1">
-        {{ content }}
-      </main>
-
-      <aside
-        id="glossary-sidebar"
-        class="reading-sidebar reading-sidebar--right"
-        aria-label="縮寫提示"
-      >
-        <header class="sidebar-header">
           <button
-            id="glossary-toggle"
-            class="sidebar-toggle"
             type="button"
-            aria-controls="glossary-sidebar-content"
-            aria-expanded="true"
-            aria-label="收合縮寫"
+            class="pane-switch"
+            data-goto-pane="reading"
+            aria-controls="article"
+            aria-pressed="true"
           >
-            <span class="sidebar-toggle-label">縮寫</span>
-            <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+            正文
           </button>
-        </header>
-        <div id="glossary-sidebar-content" class="sidebar-content">
-          <div id="glossary">
-            <p class="sidebar-empty">文章尚未標記縮寫。</p>
-          </div>
+          <button
+            type="button"
+            class="pane-switch"
+            data-goto-pane="glossary"
+            aria-controls="glossary-sidebar"
+            aria-pressed="false"
+          >
+            縮寫
+            <span class="pane-switch-icon" aria-hidden="true">›</span>
+          </button>
         </div>
-      </aside>
+        <p class="reader-toolbar-hint">
+          快捷鍵 <kbd>[</kbd> 往左 · <kbd>]</kbd> 往右
+        </p>
+      </div>
+
+      <div class="reader-viewport">
+        <div class="reader-track" id="reader-track">
+          <aside
+            id="toc-sidebar"
+            class="reading-sidebar reading-sidebar--left reader-pane"
+            data-pane="toc"
+            tabindex="-1"
+            aria-label="文章目錄"
+          >
+            <header class="sidebar-header">
+              <p class="sidebar-title">目錄</p>
+              <button
+                id="toc-toggle"
+                class="sidebar-toggle"
+                type="button"
+                aria-controls="toc-sidebar-content"
+                aria-expanded="true"
+                aria-keyshortcuts="["
+                aria-label="收合目錄"
+              >
+                <span class="sidebar-toggle-label">目錄</span>
+                <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+              </button>
+            </header>
+            <div id="toc-sidebar-content" class="sidebar-content">
+              <nav id="toc" aria-label="文章目錄"></nav>
+            </div>
+          </aside>
+
+          <main
+            id="article"
+            class="article reader-pane is-active"
+            data-pane="reading"
+            tabindex="-1"
+          >
+            <div id="article-body">
+              {{ content }}
+            </div>
+          </main>
+
+          <aside
+            id="glossary-sidebar"
+            class="reading-sidebar reading-sidebar--right reader-pane"
+            data-pane="glossary"
+            tabindex="-1"
+            aria-label="縮寫提示"
+          >
+            <header class="sidebar-header">
+              <p class="sidebar-title">縮寫</p>
+              <button
+                id="glossary-toggle"
+                class="sidebar-toggle"
+                type="button"
+                aria-controls="glossary-sidebar-content"
+                aria-expanded="true"
+                aria-keyshortcuts="]"
+                aria-label="收合縮寫"
+              >
+                <span class="sidebar-toggle-label">縮寫</span>
+                <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+              </button>
+            </header>
+            <div id="glossary-sidebar-content" class="sidebar-content">
+              <div id="glossary">
+                <p class="sidebar-empty">文章尚未標記縮寫。</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </div>
+
+    <p id="reader-announcer" class="visually-hidden" aria-live="polite"></p>
 
     <script src="{{ '/assets/js/site.js' | relative_url }}"></script>
   </body>
