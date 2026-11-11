@@ -216,7 +216,27 @@ a {
 }
 
 .article code {
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: "Cascadia Code", "Sarasa Mono TC", "Noto Sans Mono CJK TC",
+    "Source Han Mono TC", Consolas, "WenQuanYi Micro Hei Mono", ui-monospace,
+    monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  color: #7c2f2a;
+  background: #eceae8;
+  border-radius: 0.3em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.article pre code {
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+  border-radius: 0;
+  -webkit-box-decoration-break: slice;
+  box-decoration-break: slice;
 }
 
 .ruby-container {
