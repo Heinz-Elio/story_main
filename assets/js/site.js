@@ -9,6 +9,9 @@
   const COMMIT_DISTANCE_RATIO = 0.22;
   const COMMIT_FLICK_DISTANCE = 56;
   const COMMIT_FLICK_VELOCITY = 0.5;
+  const SCENE_CHAR_TARGET = 4000;
+  const SCENE_MIN_TAIL = 800;
+  const LAST_READ_KEY = "outsiders.last-read";
 
   const shell = document.querySelector(".site-shell");
   const viewport = document.querySelector(".reader-viewport");
@@ -54,6 +57,10 @@
   let gesture = null;
   let suppressClick = false;
   let announcerReady = false;
+  let pager = null;
+  let turnScene = function () {};
+  let syncPagerMode = function () {};
+  let scrollTocToCurrent = function () {};
 
   function isWide() {
     return wideMedia.matches;
@@ -83,6 +90,7 @@
       showCollapsed ? `展開${config.name}` : `收合${config.name}`,
     );
     shell.classList.toggle(config.shellClass, showCollapsed);
+    syncPagerMode();
 
     if (persist) {
       try {
@@ -235,6 +243,13 @@
     }
 
     applyPaneA11y();
+    syncPagerMode();
+
+    if (name === "toc") {
+      window.requestAnimationFrame(function () {
+        scrollTocToCurrent();
+      });
+    }
 
     if (optionsBag.announce !== false && changed) {
       announcePane(name);
@@ -411,12 +426,18 @@
       return;
     }
 
-    // [ and ] move between pages. Plain arrows stay free for chapter paging.
-    // Alt+Arrow is the browser back/forward shortcut, so it is intentionally unused.
-    const backward =
-      event.key === "[" && !event.altKey && !event.ctrlKey && !event.metaKey;
-    const forward =
-      event.key === "]" && !event.altKey && !event.ctrlKey && !event.metaKey;
+    const plain =
+      !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+    // Arrows turn scenes. [ and ] move between the directory and glossary.
+    // Alt+Arrow stays with the browser back/forward shortcuts.
+    if (plain && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+      event.preventDefault();
+      turnScene(event.key === "ArrowRight" ? 1 : -1);
+      return;
+    }
+
+    const backward = plain && event.key === "[";
+    const forward = plain && event.key === "]";
 
     if (!backward && !forward) {
       return;
@@ -494,6 +515,45 @@
     return headings;
   }
 
+  function nodeTextLength(node) {
+    return (node.textContent || "").length;
+  }
+
+  function splitSceneNodes(nodes) {
+    const chunks = [];
+    let current = [];
+    let count = 0;
+
+    nodes.forEach(function (node) {
+      const hasBody = current.some(function (item) {
+        return !item.tagName || !/^H[1-6]$/.test(item.tagName);
+      });
+      if (hasBody && count >= SCENE_CHAR_TARGET) {
+        chunks.push(current);
+        current = [];
+        count = 0;
+      }
+      current.push(node);
+      count += nodeTextLength(node);
+    });
+
+    if (current.length) {
+      chunks.push(current);
+    }
+
+    if (chunks.length > 1) {
+      const tailLength = chunks[chunks.length - 1].reduce(function (sum, node) {
+        return sum + nodeTextLength(node);
+      }, 0);
+      if (tailLength < SCENE_MIN_TAIL) {
+        const tail = chunks.pop();
+        chunks[chunks.length - 1] = chunks[chunks.length - 1].concat(tail);
+      }
+    }
+
+    return chunks;
+  }
+
   function paginateByHeading() {
     if (!articleBody) {
       return [];
@@ -506,19 +566,42 @@
     const pages = [];
     let currentNodes = [];
     let pendingH2 = null;
+    let sceneCount = 0;
 
-    function closePage() {
-      if (currentNodes.length === 0) {
+    function addScene(sceneNodes) {
+      if (sceneNodes.length === 0) {
         return;
       }
 
-      const page = document.createElement("section");
-      page.className = "story-page";
-      page.hidden = true;
-      currentNodes.forEach(function (node) {
-        page.appendChild(node);
+      const heading = sceneNodes.find(function (node) {
+        return node.tagName && /^H[2-4]$/.test(node.tagName);
       });
-      pages.push(page);
+      const headingId = heading && heading.id ? heading.id : "";
+      const chunks = splitSceneNodes(sceneNodes);
+      sceneCount += 1;
+
+      chunks.forEach(function (chunk, index) {
+        const page = document.createElement("section");
+        page.className = "story-page";
+        page.hidden = true;
+        chunk.forEach(function (node) {
+          page.appendChild(node);
+        });
+        page.dataset.scene = String(sceneCount);
+        page.dataset.part = String(index + 1);
+        page.dataset.partCount = String(chunks.length);
+        if (headingId) {
+          page.dataset.headingId = headingId;
+          if (index === 0) {
+            page.id = `page-${headingId}`;
+          }
+        }
+        pages.push(page);
+      });
+    }
+
+    function closePage() {
+      addScene(currentNodes);
       currentNodes = [];
     }
 
@@ -553,25 +636,7 @@
 
     closePage();
 
-    pages.forEach(function (page, index) {
-      page.dataset.page = String(index + 1);
-      const heading = page.querySelector("h3, h2, h4");
-      if (heading && heading.id) {
-        page.id = `page-${heading.id}`;
-      }
-    });
-
-    const pager = document.createElement("nav");
-    pager.className = "page-nav";
-    pager.setAttribute("aria-label", "章節分頁");
-    pager.innerHTML =
-      '<button type="button" data-page-prev>上一頁</button>' +
-      '<p class="page-status" aria-live="polite"></p>' +
-      '<button type="button" data-page-next>下一頁</button>';
-
-    articleBody.replaceChildren(
-      ...[title, ...pages, pager].filter(Boolean),
-    );
+    articleBody.replaceChildren(...[title, ...pages].filter(Boolean));
     return pages;
   }
 
@@ -608,11 +673,17 @@
     if (article) {
       article.addEventListener("scroll", pinToStart);
     }
+    if (viewport) {
+      viewport.addEventListener("scroll", pinToStart);
+    }
 
     window.setTimeout(function () {
       window.removeEventListener("scroll", pinToStart, true);
       if (article) {
         article.removeEventListener("scroll", pinToStart);
+      }
+      if (viewport) {
+        viewport.removeEventListener("scroll", pinToStart);
       }
       if (token !== hashPin) {
         return;
@@ -630,27 +701,73 @@
     }
 
     adjustingScroll = true;
-    if (isWide()) {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    } else if (article) {
-      article.scrollTop = 0;
+    const scroller = isWide() ? viewport : article;
+    if (scroller) {
+      scroller.scrollTop = 0;
     }
     adjustingScroll = false;
   }
 
   function setupPagination(pages) {
-    if (!article || pages.length === 0) {
+    if (!article || !shell || pages.length === 0) {
       return;
     }
 
-    const prevButton = article.querySelector("[data-page-prev]");
-    const nextButton = article.querySelector("[data-page-next]");
-    const status = article.querySelector(".page-status");
+    const sceneTotal = pages.reduce(function (max, page) {
+      return Math.max(max, Number(page.dataset.scene) || 0);
+    }, 0);
     let currentIndex = 0;
+    let rememberReads = false;
+    let lastScrollTop = 0;
+
+    pager = document.createElement("nav");
+    pager.className = "page-nav";
+    pager.setAttribute("aria-label", "章節分頁");
+    pager.innerHTML =
+      '<div class="page-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="閱讀進度">' +
+      '<span class="page-progress-bar"></span></div>' +
+      '<div class="page-nav-row">' +
+      '<button type="button" data-page-prev>上一幕</button>' +
+      '<p class="page-status" aria-live="polite"></p>' +
+      '<button type="button" data-page-next>下一幕</button>' +
+      "</div>";
+    shell.appendChild(pager);
+
+    const prevButton = pager.querySelector("[data-page-prev]");
+    const nextButton = pager.querySelector("[data-page-next]");
+    const status = pager.querySelector(".page-status");
+    const progress = pager.querySelector(".page-progress");
+    const progressBar = pager.querySelector(".page-progress-bar");
+
+    function positionLabel(page) {
+      if (!page) {
+        return "";
+      }
+      if (page.dataset.partCount === "1") {
+        return page.dataset.scene;
+      }
+      return page.dataset.scene + "-" + page.dataset.part;
+    }
+
+    function parseLocationHash() {
+      const raw = decodeURIComponent(location.hash.replace(/^#/, ""));
+      const marked = raw.match(/^(.*)~(\d+)$/);
+      if (marked) {
+        return { id: marked[1], part: marked[2] };
+      }
+      return { id: raw, part: "" };
+    }
 
     function pageIndexForId(id) {
       if (!id) {
         return 0;
+      }
+
+      const stored = pages.findIndex(function (page) {
+        return page.dataset.headingId === id;
+      });
+      if (stored >= 0) {
+        return stored;
       }
 
       const heading = document.getElementById(id);
@@ -666,6 +783,140 @@
       );
     }
 
+    function pageIndexForLocation() {
+      const parsed = parseLocationHash();
+      if (!parsed.id) {
+        return 0;
+      }
+      if (parsed.part) {
+        const exact = pages.findIndex(function (page) {
+          return (
+            page.dataset.headingId === parsed.id &&
+            page.dataset.part === parsed.part
+          );
+        });
+        if (exact >= 0) {
+          return exact;
+        }
+      }
+      return pageIndexForId(parsed.id);
+    }
+
+    function readingScroller() {
+      return isWide() ? viewport : article;
+    }
+
+    function readingScroll() {
+      const scroller = readingScroller();
+      if (!scroller) {
+        return { top: 0, max: 0 };
+      }
+      return {
+        top: scroller.scrollTop,
+        max: Math.max(0, scroller.scrollHeight - scroller.clientHeight),
+      };
+    }
+
+    function updateProgress() {
+      const metrics = readingScroll();
+      const fraction = metrics.max <= 1 ? 1 : Math.min(1, metrics.top / metrics.max);
+      const overall = (currentIndex + fraction) / pages.length;
+      const percent = Math.round(overall * 1000) / 10;
+      progressBar.style.transform = "scaleX(" + overall + ")";
+      progress.setAttribute("aria-valuenow", String(Math.round(percent)));
+      return metrics;
+    }
+
+    function setPagerDismissed(dismissed) {
+      pager.classList.toggle("is-dismissed", dismissed);
+    }
+
+    function placePager() {
+      if (!pager || !article) {
+        return;
+      }
+      const row = pager.querySelector(".page-nav-row");
+      const progress = pager.querySelector(".page-progress");
+      if (isWide()) {
+        const rect = article.getBoundingClientRect();
+        const pagerRect = pager.getBoundingClientRect();
+        const offset = Math.max(0, rect.left - pagerRect.left);
+        if (row) {
+          row.style.width = rect.width + "px";
+          row.style.marginLeft = offset + "px";
+        }
+        if (progress) {
+          progress.style.width = rect.width + "px";
+          progress.style.marginLeft = offset + "px";
+        }
+      } else {
+        if (row) {
+          row.style.width = "";
+          row.style.marginLeft = "";
+        }
+        if (progress) {
+          progress.style.width = "";
+          progress.style.marginLeft = "";
+        }
+      }
+      const hidden =
+        pager.classList.contains("is-dismissed") ||
+        pager.classList.contains("is-unavailable");
+      document.documentElement.style.setProperty(
+        "--pager-space",
+        hidden ? "0px" : pager.offsetHeight + "px",
+      );
+    }
+
+    syncPagerMode = function () {
+      if (!pager) {
+        return;
+      }
+      const available = isWide() || PANE_ORDER[paneIndex] === "reading";
+      pager.classList.toggle("is-unavailable", !available);
+      if (available) {
+        const metrics = readingScroll();
+        if (metrics.top <= 48 || metrics.top >= metrics.max - 8) {
+          setPagerDismissed(false);
+        }
+      }
+      window.requestAnimationFrame(placePager);
+    };
+
+    scrollTocToCurrent = function () {
+      const link = toc && toc.querySelector("a.is-current");
+      const scroller = paneElements.toc;
+      if (!link || !scroller || scroller.classList.contains("is-collapsed")) {
+        return;
+      }
+      const delta =
+        link.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const next =
+        scroller.scrollTop + delta - (scroller.clientHeight - link.offsetHeight) / 2;
+      scroller.scrollTo({
+        top: Math.max(0, next),
+        behavior: reduceMotion.matches ? "auto" : "smooth",
+      });
+    };
+
+    function remember(page) {
+      if (!rememberReads) {
+        return;
+      }
+      try {
+        window.localStorage.setItem(
+          LAST_READ_KEY,
+          JSON.stringify({
+            headingId: page.dataset.headingId || "",
+            part: page.dataset.part || "1",
+            label: positionLabel(page),
+          }),
+        );
+      } catch (error) {
+        // localStorage may be unavailable in private browsing contexts.
+      }
+    }
+
     function showPage(index, headingId) {
       currentIndex = Math.min(Math.max(index, 0), pages.length - 1);
       const page = pages[currentIndex];
@@ -676,27 +927,104 @@
 
       prevButton.disabled = currentIndex === 0;
       nextButton.disabled = currentIndex === pages.length - 1;
-      status.textContent = `${currentIndex + 1} / ${pages.length}`;
+      status.textContent = positionLabel(page) + " / " + sceneTotal;
 
       if (toc) {
         toc.querySelectorAll("a").forEach(function (link) {
           const targetId = decodeURIComponent(link.hash.replace(/^#/, ""));
-          const target = targetId ? document.getElementById(targetId) : null;
           link.classList.toggle(
             "is-current",
-            Boolean(target && page.contains(target)),
+            Boolean(page.dataset.headingId) && targetId === page.dataset.headingId,
           );
         });
       }
 
-      const activeHeading =
-        (headingId && page.querySelector(`#${CSS.escape(headingId)}`)) ||
-        page.querySelector("h3, h2, h4");
-      if (activeHeading && activeHeading.id) {
-        setLocationHash(activeHeading.id);
+      const hashId =
+        page.dataset.part && page.dataset.part !== "1" && page.dataset.headingId
+          ? page.dataset.headingId + "~" + page.dataset.part
+          : (headingId && page.querySelector(`#${CSS.escape(headingId)}`)
+              ? headingId
+              : page.dataset.headingId);
+      if (hashId) {
+        setLocationHash(hashId);
       }
 
       scrollReadingToStart();
+      lastScrollTop = 0;
+      setPagerDismissed(false);
+      updateProgress();
+      remember(page);
+
+      if (isWide() || PANE_ORDER[paneIndex] === "toc") {
+        scrollTocToCurrent();
+      }
+    }
+
+    function readLastRead() {
+      try {
+        const raw = window.localStorage.getItem(LAST_READ_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function offerResume() {
+      const saved = readLastRead();
+      if (!saved || !saved.headingId) {
+        return;
+      }
+      const index = pages.findIndex(function (page) {
+        return (
+          page.dataset.headingId === saved.headingId &&
+          page.dataset.part === String(saved.part || "1")
+        );
+      });
+      if (index <= 0) {
+        return;
+      }
+
+      const offer = document.createElement("div");
+      offer.className = "resume-offer";
+      const label = saved.label || positionLabel(pages[index]);
+      offer.innerHTML =
+        "<p>上次讀到 <strong></strong></p>" +
+        '<button type="button" data-resume>繼續閱讀</button>' +
+        '<button type="button" data-resume-dismiss>留在開頭</button>';
+      offer.querySelector("strong").textContent = label;
+      const title = articleBody.querySelector("h1");
+      if (title) {
+        title.insertAdjacentElement("afterend", offer);
+      } else {
+        articleBody.prepend(offer);
+      }
+
+      offer.querySelector("[data-resume]").addEventListener("click", function () {
+        offer.remove();
+        showPage(index);
+      });
+      offer.querySelector("[data-resume-dismiss]").addEventListener("click", function () {
+        try {
+          window.localStorage.removeItem(LAST_READ_KEY);
+        } catch (error) {
+          // Ignore storage failures.
+        }
+        offer.remove();
+      });
+    }
+
+    function onReaderScroll() {
+      const metrics = readingScroll();
+      if (!adjustingScroll) {
+        const atEnd = metrics.top >= metrics.max - 8;
+        if (atEnd || metrics.top < lastScrollTop - 6) {
+          setPagerDismissed(false);
+        } else if (metrics.top > lastScrollTop + 12 && metrics.top > 48) {
+          setPagerDismissed(true);
+        }
+      }
+      lastScrollTop = metrics.top;
+      updateProgress();
     }
 
     prevButton.addEventListener("click", function () {
@@ -706,6 +1034,10 @@
     nextButton.addEventListener("click", function () {
       showPage(currentIndex + 1);
     });
+
+    turnScene = function (delta) {
+      showPage(currentIndex + delta);
+    };
 
     if (toc) {
       toc.addEventListener("click", function (event) {
@@ -735,15 +1067,24 @@
     }
 
     window.addEventListener("hashchange", function () {
-      const id = decodeURIComponent(location.hash.replace(/^#/, ""));
-      showPage(pageIndexForId(id), id);
+      showPage(pageIndexForLocation());
       if (!isWide()) {
         goToPane("reading", { announce: false });
       }
     });
 
-    const initialId = decodeURIComponent(location.hash.replace(/^#/, ""));
-    showPage(pageIndexForId(initialId), initialId);
+    article.addEventListener("scroll", onReaderScroll, { passive: true });
+    if (viewport) {
+      viewport.addEventListener("scroll", onReaderScroll, { passive: true });
+    }
+
+    const openedWithHash = location.hash.length > 1;
+    showPage(openedWithHash ? pageIndexForLocation() : 0);
+    rememberReads = true;
+    syncPagerMode();
+    if (!openedWithHash) {
+      offerResume();
+    }
   }
 
   function buildGlossary() {
@@ -849,6 +1190,7 @@
   wideMedia.addEventListener("change", onLayoutChange);
   window.addEventListener("resize", function () {
     layoutPanes();
+    syncPagerMode();
   });
 
   applySidebarChrome();
