@@ -375,7 +375,8 @@ a {
   margin-left: 1.6rem;
 }
 
-.toc-list a {
+.toc-list a,
+.toc-list .toc-heading {
   display: block;
   padding: 0.12rem 0.15rem 0.12rem 0.55rem;
   border-left: 3px solid transparent;
@@ -387,7 +388,8 @@ a {
   text-decoration: underline;
 }
 
-.toc-list a.is-current {
+.toc-list a.is-current,
+.toc-list .toc-heading.is-current {
   color: #1c1917;
   font-weight: 700;
   background: rgba(30, 58, 138, 0.07);

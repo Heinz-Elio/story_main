@@ -503,11 +503,19 @@
 
     headings.forEach(function (heading, index) {
       const item = document.createElement("li");
-      const link = document.createElement("a");
+      const id = makeHeadingId(heading, index, usedIds);
+      let entry;
       item.dataset.level = heading.tagName.slice(1);
-      link.href = `#${makeHeadingId(heading, index, usedIds)}`;
-      link.textContent = heading.textContent.trim();
-      item.appendChild(link);
+      if (heading.tagName === "H2") {
+        entry = document.createElement("span");
+        entry.className = "toc-heading";
+      } else {
+        entry = document.createElement("a");
+        entry.href = `#${id}`;
+      }
+      entry.dataset.target = id;
+      entry.textContent = heading.textContent.trim();
+      item.appendChild(entry);
       list.appendChild(item);
     });
 
@@ -631,7 +639,12 @@
     });
 
     if (pendingH2) {
-      currentNodes.unshift(pendingH2);
+      const lastPage = pages[pages.length - 1];
+      if (lastPage) {
+        lastPage.appendChild(pendingH2);
+      } else {
+        currentNodes.unshift(pendingH2);
+      }
     }
 
     closePage();
@@ -884,7 +897,7 @@
     };
 
     scrollTocToCurrent = function () {
-      const link = toc && toc.querySelector("a.is-current");
+      const link = toc && toc.querySelector(".is-current");
       const scroller = paneElements.toc;
       if (!link || !scroller || scroller.classList.contains("is-collapsed")) {
         return;
@@ -930,11 +943,11 @@
       status.textContent = positionLabel(page) + " / " + sceneTotal;
 
       if (toc) {
-        toc.querySelectorAll("a").forEach(function (link) {
-          const targetId = decodeURIComponent(link.hash.replace(/^#/, ""));
-          link.classList.toggle(
+        toc.querySelectorAll("[data-target]").forEach(function (entry) {
+          entry.classList.toggle(
             "is-current",
-            Boolean(page.dataset.headingId) && targetId === page.dataset.headingId,
+            Boolean(page.dataset.headingId) &&
+              entry.dataset.target === page.dataset.headingId,
           );
         });
       }
@@ -1046,7 +1059,7 @@
           return;
         }
 
-        const id = decodeURIComponent(link.hash.replace(/^#/, ""));
+        const id = link.dataset.target || "";
         if (!id) {
           return;
         }
