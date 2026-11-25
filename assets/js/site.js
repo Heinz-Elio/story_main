@@ -568,8 +568,16 @@
     }
 
     const title = articleBody.querySelector("h1");
+    const keepOut = [];
     const nodes = Array.from(articleBody.children).filter(function (node) {
-      return node !== title;
+      if (node === title) {
+        return false;
+      }
+      if (/^(STYLE|SCRIPT|LINK|META|TEMPLATE)$/.test(node.tagName)) {
+        keepOut.push(node);
+        return false;
+      }
+      return true;
     });
     const pages = [];
     let currentNodes = [];
@@ -649,7 +657,7 @@
 
     closePage();
 
-    articleBody.replaceChildren(...[title, ...pages].filter(Boolean));
+    articleBody.replaceChildren(...[title, ...keepOut, ...pages].filter(Boolean));
     return pages;
   }
 
